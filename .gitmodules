@@ -1,0 +1,3 @@
+[submodule "nanobio_core"]
+	path = nanobio_core
+	url = https://github.com/Nanobiosensorics/nanobio_core.git
