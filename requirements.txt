@@ -1,1 +1,7 @@
-numpy==2.0.1
+numpy
+matplotlib
+scipy
+opencv-python
+scikit-image
+pandas
+plotly
