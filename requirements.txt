@@ -6,3 +6,4 @@ scikit-image
 pandas
 plotly
 PyQt5
+cellpose
