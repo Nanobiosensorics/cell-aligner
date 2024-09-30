@@ -4,14 +4,53 @@ import numpy as np
 """
 This algorithm tries to match samples of source points to each target point.
 One occurence of a match is described as a translation candidate.
-This method is using numpy vector operations so it is faster, but does not work for larger datasets
-due to inefficient memory management.
+This method uses the combination of standard python operations and numpy operations to save memory.
 
 :param source_points: numpy array containing points which will be translated. (-1, 2) shaped.
 :param target_points: numpy array containing the points where the source points will be translated to. (-1, 2) shaped.
 :param source_indices: numpy array containing indices of source point samples.
 """
-def find_translation_stochastic_speed(source_points: np.ndarray, target_points: np.ndarray, source_indices: np.ndarray):
+def find_translation_stochastic(source_points: np.ndarray, target_points: np.ndarray, source_indices: np.ndarray):
+  # Select random points from source data.
+  selected_source_points = source_points[source_indices]
+
+  # Calculate all translation candidate vectors from selected source points.
+  translation_candidates = (target_points - selected_source_points[:, np.newaxis]).reshape(-1, 2)
+
+  # Calculate all correspondence vectors between the two datasets.
+  correspondence_vectors = (target_points - source_points[:, np.newaxis]).reshape(-1, 2)
+
+  # Storing the best average error and best translation.
+  best_error, best_translation = np.Infinity, None
+
+  # Evaluating a translation candidate by shifting all correspondence vectors and calculating
+  # average length.
+  def evaluate_candidate(translation_candidate: np.ndarray):
+    error_vectors = correspondence_vectors - translation_candidate
+    error_lengths = np.linalg.norm(error_vectors, axis=-1)
+    return np.average(error_lengths)
+
+  # Tries each translation candidate and select the best.
+  for candidate in translation_candidates:
+    error = evaluate_candidate(candidate)
+    if error < best_error:
+      best_error = error
+      best_translation = candidate
+  
+  return best_translation
+
+
+"""
+This algorithm tries to match samples of source points to each target point.
+One occurence of a match is described as a translation candidate.
+This method only uses numpy operations, it is using much more memory than the previous solution
+so it is not practical in bigger datasets.
+
+:param source_points: numpy array containing points which will be translated. (-1, 2) shaped.
+:param target_points: numpy array containing the points where the source points will be translated to. (-1, 2) shaped.
+:param source_indices: numpy array containing indices of source point samples.
+"""
+def find_translation_stochastic_numpy(source_points: np.ndarray, target_points: np.ndarray, source_indices: np.ndarray):
   # Select random points from source data.
   selected_source_points = source_points[source_indices]
 
@@ -31,48 +70,6 @@ def find_translation_stochastic_speed(source_points: np.ndarray, target_points: 
   error_scores = np.average(error_lengths, axis=-1)
   
   return translation_candidates[np.argmin(error_scores)]
-
-
-"""
-This algorithm tries to match samples of source points to each target point.
-One occurence of a match is described as a translation candidate.
-This method is using standard python operations so it is slower, but does work for larger datasets
-due to efficient memory management.
-
-:param source_points: numpy array containing points which will be translated. (-1, 2) shaped.
-:param target_points: numpy array containing the points where the source points will be translated to. (-1, 2) shaped.
-:param source_indices: numpy array containing indices of source point samples.
-"""
-def find_translation_stochastic_memory(source_points: np.ndarray, target_points: np.ndarray, source_indices: np.ndarray):
-  # Select random points from source data.
-  selected_source_points = source_points[source_indices]
-  # Storing the best average error and best translation.
-  best_error, best_translation = np.Infinity, None
-
-  # Evaluating a translation candidate by shifting all correspondence vectors and calculating
-  # average length.
-  def evaluate_candidate(translation_candidate: np.ndarray):
-    total_error = 0.
-    for source_point in source_points:
-      for target_point in target_points:
-        correspondence_vector = target_point - source_point
-        error_vector = correspondence_vector - translation_candidate
-        error_length = np.linalg.norm(error_vector)
-        total_error += error_length
-    avg_error = total_error / (len(source_points) * len(target_points))
-    return avg_error
-
-  # Tries every translation vector from each selected source point to each target point
-  # and chooses the one which generates the lowest average error.
-  for source_point in selected_source_points:
-    for target_point in target_points:
-      translation_candidate = target_point - source_point
-      error = evaluate_candidate(translation_candidate)
-      if error < best_error:
-        best_error = error
-        best_translation = translation_candidate
-  
-  return best_translation
 
 
 """
