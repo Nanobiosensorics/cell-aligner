@@ -2,6 +2,8 @@ import matplotlib
 import glob
 import os
 import cv2
+import click
+import pickle
 from nanobio_core.epic_cardio.processing import load_data, preprocessing, localization, RangeType
 from cellpose import models
 from utils import calculate_microscope_cell_centroids
@@ -31,7 +33,29 @@ localization_params = {
 filter_params = {}
 
 
-def read_biosensor_data(input_path: str, flip: list[bool]):
+@click.option("--input_path", type=str, required=True, help="A valid path to read microscope and biosensor data from.")
+@click.option("--output_path", type=str, required=True, help="A valid path to to store results to.")
+@click.option("--cellpose_model_path", type=str, required=True, help="A valid path to a cellpose model to use for segmentation.")
+@click.option("--flip", type=str, required=True, help="1 if flip on axis, 0 if not. (e.g. 1,0)")
+def process(input_path, output_path, cellpose_model_path, flip):
+  flip = __parse_1d_int_array(flip)
+
+  well_data = __read_biosensor_data(os.path.join(input_path, "epic_data"), flip)
+  microscope_data = __read_microscope_data(os.path.join(input_path, "img_data"), cellpose_model_path)
+
+  result = {}
+  for key in well_data.keys():
+    result[key] = {
+      "well_data": well_data[key],
+      "microscope_data": microscope_data[key]
+    }
+  
+  with open(output_path, "wb") as file:
+    pickle.dump(result, file)
+
+
+# Reads and preprocesses biosensor data.
+def __read_biosensor_data(input_path: str, flip: list[bool]):
   preprocessing_params["flip"] = flip
 
   raw_wells, full_time, full_phases = load_data(input_path, flip=preprocessing_params["flip"])
@@ -41,7 +65,8 @@ def read_biosensor_data(input_path: str, flip: list[bool]):
   return localized_well_data
 
 
-def read_microscope_data(input_path: str, model_path: str):
+# Reads and preprocesses microscope data with a specific cellpose model.
+def __read_microscope_data(input_path: str, model_path: str):
   img_paths = glob.glob(os.path.join(input_path, "*.jpeg"))
 
   img_names, img_data = [], []
@@ -67,3 +92,8 @@ def read_microscope_data(input_path: str, model_path: str):
   
   return result
 
+
+# Parses a command line string input as an int array.
+def __parse_1d_int_array(str):
+  array_1d = list(map(int, str.split(',')))
+  return array_1d
