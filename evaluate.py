@@ -1,8 +1,6 @@
 import click
-import os
 import numpy as np
 import pickle
-from data_reading import read_biosensor_data, read_microscope_data
 from methods import find_translation_stochastic, find_translation_pmc
 
 
