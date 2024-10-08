@@ -42,7 +42,7 @@ def eval_stochastic(input_path, output_path, source_indices_ratio):
 @click.option("--input_path", type=str, required=True, help="A valid path to read preprocessed microscope and biosensor data from.")
 @click.option("--output_path", type=str, required=True, help="A valid path to to store results to.")
 @click.option("--epsilon", type=str, required=True, help="Pairwise consistency threshold.")
-def eval_pmc(input_path, output_path, cellpose_model_path, flip, epsilon):
+def eval_pmc(input_path, output_path, epsilon):
   epsilon = float(epsilon)
 
   with open(input_path, "rb") as file:
@@ -58,12 +58,6 @@ def eval_pmc(input_path, output_path, cellpose_model_path, flip, epsilon):
   
   with open(output_path, "wb") as file:
     pickle.dump(result, file)
-
-
-# Parses a command line string input as an int array.
-def __parse_1d_int_array(str):
-  array_1d = list(map(int, str.split(',')))
-  return array_1d
 
 
 if __name__ == "__main__":
