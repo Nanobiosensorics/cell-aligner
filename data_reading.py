@@ -41,7 +41,7 @@ def read_biosensor_data(input_path: str, flip: list[bool]):
   return localized_well_data
 
 
-def read_microscope_data(input_path: str, model_path: str, batch_size: int):
+def read_microscope_data(input_path: str, model_path: str):
   img_paths = glob.glob(os.path.join(input_path, "*.jpeg"))
 
   img_names, img_data = [], []
@@ -53,11 +53,11 @@ def read_microscope_data(input_path: str, model_path: str, batch_size: int):
     img_data.append(data)
   
   CP = models.CellposeModel(pretrained_model=model_path, gpu=True)
-
-  masks, _, _ = CP.eval(img_data, channels=[0, 0], batch_size=batch_size)
-
   img_centroids = []
-  for mask in masks:
+
+  for name, data in zip(img_names, img_data):
+    print("Parsing", name, end='\r')
+    mask, _, _ = CP.eval(data, channels=[0, 0])
     centroids = calculate_microscope_cell_centroids(mask)
     img_centroids.append(centroids)
   

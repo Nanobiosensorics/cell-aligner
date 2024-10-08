@@ -16,7 +16,6 @@ def cli():
 @click.option("--input_path", type=str, required=True, help="A valid path to read microscope and biosensor data from.")
 @click.option("--output_path", type=str, required=True, help="A valid path to to store results to.")
 @click.option("--cellpose_model_path", type=str, required=True, help="A valid path to a cellpose model to use for segmentation.")
-@click.option("--batch_size", type=str, required=True, help="Batch size to evaluate cellpose model on. (important for memory)")
 @click.option("--flip", type=str, required=True, help="1 if flip on axis, 0 if not. (e.g. 1,0)")
 @click.option("--source_indices_ratio", type=str, required=True, help="Ratio which determines how many source indices we are taking.")
 def eval_stochastic(input_path, output_path, cellpose_model_path, batch_size, flip, source_indices_ratio):
@@ -28,7 +27,7 @@ def eval_stochastic(input_path, output_path, cellpose_model_path, batch_size, fl
   flip[1] = False if flip[1] == 0 else True
 
   well_data = read_biosensor_data(os.path.join(input_path, "epic_data"), flip)
-  microscope_data = read_microscope_data(os.path.join(input_path, "img_data"), cellpose_model_path, batch_size)
+  microscope_data = read_microscope_data(os.path.join(input_path, "img_data"), cellpose_model_path)
 
   np.random.seed(42)
   result = {}
