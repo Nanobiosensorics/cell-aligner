@@ -11,10 +11,6 @@ from cellpose import models
 from utils import calculate_microscope_cell_centroids
 
 
-# Need to set this to work.
-matplotlib.use("agg")
-
-
 # Processing parameters.
 preprocessing_params = {
   'signal_range' : {
