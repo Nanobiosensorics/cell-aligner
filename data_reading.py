@@ -4,7 +4,9 @@ import os
 import cv2
 import click
 import pickle
+import numpy as np
 from nanobio_core.epic_cardio.processing import load_data, preprocessing, localization, RangeType
+from nanobio_core.image_fitting.cardio_mic import CardioMicFitter, CardioMicScaling
 from cellpose import models
 from utils import calculate_microscope_cell_centroids
 
@@ -38,10 +40,11 @@ filter_params = {}
 @click.option("--output_path", type=str, required=True, help="A valid path to to store results to.")
 @click.option("--cellpose_model_path", type=str, required=True, help="A valid path to a cellpose model to use for segmentation.")
 @click.option("--flip", type=str, required=True, help="1 if flip on axis, 0 if not. (e.g. 1,0)")
-def process(input_path, output_path, cellpose_model_path, flip):
+@click.option("--scaling", type=str, required=True, help="The scaling to use on biosensor image. (MIC_5X, MIC_10X, MIC_20X)")
+def process(input_path, output_path, cellpose_model_path, flip, scaling):
   flip = __parse_1d_int_array(flip)
 
-  well_data = __read_biosensor_data(os.path.join(input_path, "epic_data"), flip)
+  well_data = __read_biosensor_data(os.path.join(input_path, "epic_data"), flip, scaling)
   microscope_data = __read_microscope_data(os.path.join(input_path, "img_data"), cellpose_model_path)
 
   result = {}
@@ -56,14 +59,24 @@ def process(input_path, output_path, cellpose_model_path, flip):
 
 
 # Reads and preprocesses biosensor data.
-def __read_biosensor_data(input_path: str, flip: list[bool]):
+def __read_biosensor_data(input_path: str, flip: list[bool], scaling: str):
   preprocessing_params["flip"] = flip
 
   raw_wells, full_time, full_phases = load_data(input_path, flip=preprocessing_params["flip"])
   _, _, _, filter_ptss, selected_range = preprocessing(preprocessing_params, raw_wells, full_time, full_phases, background_coords=filter_params)
   localized_well_data = localization(preprocessing_params, localization_params, raw_wells, selected_range, filter_ptss)
+  scale, _ = CardioMicFitter._get_scale(getattr(CardioMicScaling, scaling))
+  
+  result = {}
+  for key in localized_well_data.keys():
+    max_well = localized_well_data[key][0]
+    if len(max_well.shape) > 2: 
+      max_well = np.max(max_well, axis=0)
+    max_well = cv2.resize(max_well, (scale, scale), interpolation=cv2.INTER_NEAREST)
+    peaks = localized_well_data[key][1] * scale / 80
+    result[key] = [max_well, peaks]
 
-  return localized_well_data
+  return result
 
 
 # Reads and preprocesses microscope data with a specific cellpose model.
