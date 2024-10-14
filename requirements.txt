@@ -9,3 +9,4 @@ PyQt5
 cellpose
 memory_profiler
 click
+nanopyx
