@@ -1,51 +1,19 @@
 import glob
 import os
 import cv2
-import click
 import pickle
 import numpy as np
-from nanobio_core.epic_cardio.processing import load_data, preprocessing, localization, RangeType
+from nanobio_core.epic_cardio.processing import load_data
+from nanobio_core.epic_cardio.data_correction import correct_well
+from nanobio_core.epic_cardio.math_ops import calculate_cell_maximas
 from nanobio_core.image_fitting.cardio_mic import CardioMicFitter, CardioMicScaling
 from nanopyx.methods import SRRF
 from cellpose import models
 from utils import calculate_microscope_cell_centroids
 
 
-# Processing parameters.
-preprocessing_params = {
-  'signal_range' : {
-    'range_type': RangeType.MEASUREMENT_PHASE,
-    'ranges': [0, None],
-  },
-  'drift_correction': {
-    'threshold': 75,
-    'filter_method': 'mean',
-    'background_selector': False,
-  }
-}
-localization_params = {
-  "threshold_range": [75, 3000],
-  "neighbourhood_size": 3,
-  "error_mask_filtering": True
-}
-superresolution_params = {
-  "frames_per_timepoint": 50,
-  "ring_radius": 0.5
-}
-filter_params = {}
-
-@click.command()
-@click.option("--input_path", type=str, required=True, help="A valid path to read microscope and biosensor data from.")
-@click.option("--output_path", type=str, required=True, help="A valid path to to store results to.")
-@click.option("--cellpose_model_path", type=str, required=True, help="A valid path to a cellpose model to use for segmentation.")
-@click.option("--flip", type=str, required=True, help="1 if flip on axis, 0 if not. (e.g. 1,0)")
-@click.option("--scaling", type=str, required=True, help="The scaling to use on biosensor image. (MIC_5X, MIC_10X, MIC_20X)")
-@click.option("--magnification", type=str, required=True, help="The magnification to use on biosensor image. (1 if no superresolution)")
-def process(input_path, output_path, cellpose_model_path, flip, scaling, magnification):
-  flip = __parse_1d_int_array(flip)
-  magnification = int(magnification)
-
-  well_data = __read_biosensor_data(os.path.join(input_path, "epic_data"), flip, scaling, magnification)
+def process(input_path: str, output_path: str, cellpose_model_path: str, scaling: str, magnification: int, params: dict):
+  well_data = __read_biosensor_data(os.path.join(input_path, "epic_data"), scaling, magnification, params)
   microscope_data = __read_microscope_data(os.path.join(input_path, "img_data"), cellpose_model_path)
 
   result = {}
@@ -60,34 +28,33 @@ def process(input_path, output_path, cellpose_model_path, flip, scaling, magnifi
 
 
 # Reads and preprocesses biosensor data.
-def __read_biosensor_data(input_path: str, flip: list[bool], scaling: str, magnification: int):
-  preprocessing_params["flip"] = flip
-
-  raw_wells, full_time, full_phases = load_data(input_path, flip=preprocessing_params["flip"])
-
-  if magnification > 1:
-    frames_per_timepoint = superresolution_params["frames_per_timepoint"]
-    for well_id in raw_wells.keys():
-      well = raw_wells[well_id]
-      result = []
-      for i in range(well.shape[0] // frames_per_timepoint):
-        block = well[i*frames_per_timepoint:(i+1)*frames_per_timepoint]
-        output = SRRF(block, magnification, superresolution_params["ring_radius"])
-        result.append(output)
-      raw_wells[well_id] = np.array(result)
-
-  _, _, _, filter_ptss, selected_range = preprocessing(preprocessing_params, raw_wells, full_time, full_phases, background_coords=filter_params)
-  localized_well_data = localization(preprocessing_params, localization_params, raw_wells, selected_range, filter_ptss)
+def __read_biosensor_data(input_path: str, scaling: str, magnification: int, params: dict):
+  raw_wells, _, _ = load_data(input_path, flip=params['preprocessing_params']["flip"])
   scale, _ = CardioMicFitter._get_scale(getattr(CardioMicScaling, scaling))
-  
   result = {}
-  for key in localized_well_data.keys():
-    max_well = localized_well_data[key][0]
-    if len(max_well.shape) > 2: 
-      max_well = np.max(max_well, axis=0)
+
+  for well_id in raw_wells.keys():
+    slicer = slice(int(params['preprocessing_params']['range_lowerbound'] * len(raw_wells[well_id])), len(raw_wells[well_id]))
+    well, _, _ = correct_well(raw_wells[well_id][slicer], coords=[], 
+                              threshold=params['preprocessing_params']['drift_correction']['threshold'], 
+                              mode=params['preprocessing_params']['drift_correction']['filter_method'])
+    
+    if magnification > 1:
+      well = SRRF(well, magnification, 0.5)[0]
+    
+    ptss = calculate_cell_maximas(well,
+                                  min_threshold=params['localization_params']['threshold_range'][0],
+                                  max_threshold=params['localization_params']['threshold_range'][1],
+                                  neighborhood_size=params['localization_params']['neighbourhood_size'],
+                                  error_mask=None)
+    
+    max_well = well
+    if len(max_well.shape) > 2:
+      max_well = np.max(well, axis=0)
     max_well = cv2.resize(max_well, (scale, scale), interpolation=cv2.INTER_NEAREST)
-    peaks = localized_well_data[key][1] * scale / 80 / magnification
-    result[key] = [max_well, peaks]
+    ptss = ptss * scale / 80 / magnification
+
+    result[well_id] = [max_well, ptss]
 
   return result
 
@@ -118,13 +85,3 @@ def __read_microscope_data(input_path: str, model_path: str):
     result[name] = [data, centroids]
   
   return result
-
-
-# Parses a command line string input as an int array.
-def __parse_1d_int_array(str):
-  array_1d = list(map(int, str.split(',')))
-  return array_1d
-
-
-if __name__ == '__main__':
-    process()
