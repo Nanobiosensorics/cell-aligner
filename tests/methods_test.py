@@ -1,7 +1,7 @@
 import numpy as np
 import unittest
 
-import methods
+from alignment import find_translation_pmc, find_translation_stochastic
 
 
 class MethodsTest(unittest.TestCase):
@@ -12,7 +12,7 @@ class MethodsTest(unittest.TestCase):
     cardio_coords = np.delete(mic_coords, [1, 2], axis=0) + translation
 
     # Act
-    result = methods.find_translation_stochastic(cardio_coords, mic_coords, np.array([0, 1, 2]))
+    result = find_translation_stochastic(cardio_coords, mic_coords, 1)
 
     # Assert
     self.assertTrue(np.allclose(-result, translation, 0.2))
@@ -24,9 +24,7 @@ class MethodsTest(unittest.TestCase):
     cardio_coords = np.delete(mic_coords, [1, 2], axis=0) + translation
 
     # Act
-    result = methods.find_translation_pmc(cardio_coords, mic_coords, 1)
-
-    print(result, translation)
+    result = find_translation_pmc(cardio_coords, mic_coords, 1)
 
     # Assert
     self.assertTrue(np.allclose(-result, translation, 0.2))

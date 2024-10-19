@@ -1,9 +1,9 @@
 import numpy as np
 import time
-import methods
 import click
 import pickle
 from memory_profiler import memory_usage
+from alignment import find_translation_pmc, find_translation_stochastic
 
 
 @click.group()
@@ -95,7 +95,7 @@ def __benchmark_stochastic(n_source_points: int, n_target_points: int, n_source_
   rnd_source_indices = np.random.randint(0, n_source_points, size=(n_source_indices))
 
   execution_time, max_memory = __benchmark_method(
-    methods.find_translation_stochastic,
+    find_translation_stochastic,
     (rnd_source_points, rnd_target_points, rnd_source_indices)
   )
 
@@ -113,7 +113,7 @@ def __benchmark_pmc(n_source_points: int, n_target_points: int, epsilon: float):
   rnd_target_points = np.random.rand(n_target_points, 2)
 
   execution_time, max_memory = __benchmark_method(
-    methods.find_translation_pmc,
+    find_translation_pmc,
     (rnd_source_points, rnd_target_points, epsilon)
   )
 
