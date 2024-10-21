@@ -22,6 +22,10 @@ def process_biosensor_data(well_data: np.ndarray, params: dict):
     threshold=params['preprocessing_params']['drift_correction']['threshold'], 
     mode=params['preprocessing_params']['drift_correction']['filter_method'])
   
+  max_well = well_data
+  if len(max_well.shape) > 2:
+    max_well = np.max(well_data, axis=0)
+  
   # Magnification if needed
   magnification = params["preprocessing_params"]["magnification"]
   if magnification > 1:
@@ -35,15 +39,10 @@ def process_biosensor_data(well_data: np.ndarray, params: dict):
     neighborhood_size=params['localization_params']['neighbourhood_size'],
     error_mask=None)
   
-  # Max well selection
-  max_well = well_data
-  if len(max_well.shape) > 2:
-    max_well = np.max(well_data, axis=0)
-  
   # Scaling
   size, _ = CardioMicFitter._get_scale(getattr(CardioMicScaling, params["preprocessing_params"]["scaling"]))
-  max_well = cv2.resize(max_well, (size, size), interpolation=cv2.INTER_NEAREST)
+  max_well_scaled = cv2.resize(max_well, (size, size), interpolation=cv2.INTER_NEAREST)
   ptss = ptss * size / 80 / magnification
 
-  return (max_well, ptss)
+  return (max_well_scaled, ptss, max_well)
 
