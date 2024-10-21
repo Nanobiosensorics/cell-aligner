@@ -1,7 +1,7 @@
 import os
 import cv2
+import glob
 from abc import ABC, abstractmethod
-from glob import glob
 from nanobio_core.epic_cardio.processing import load_data
 
 

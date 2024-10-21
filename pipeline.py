@@ -3,7 +3,7 @@ from alignment import find_translation_stochastic, find_translation_pmc
 from cellpose import models
 
 
-def run_pipeline(data, mode: tuple, cellpose_model_path: str, epic_params: dict, is_processed: bool = False, only_process: bool = False):
+def run_pipeline(data, mode: tuple = (), cellpose_model_path: str = "", epic_params: dict = {}, is_processed: bool = False, only_process: bool = False):
   microscope_data, biosensor_data = {}, {}
   if isinstance(data, Reader):
     microscope_data, biosensor_data = data.read_microscope_data(), data.read_biosensor_data()
