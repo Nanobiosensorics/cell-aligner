@@ -16,15 +16,16 @@ def process_microscope_data(mic_data: np.ndarray, cellpose_model):
 def process_biosensor_data(well_data: np.ndarray, params: dict):
   slicer = slice(int(params['preprocessing_params']['range_lowerbound'] * len(well_data)), len(well_data))
 
+  # Extracting raw well data.
+  raw_well = well_data
+  if len(raw_well.shape) > 2:
+    raw_well = np.max(raw_well, axis=0)
+
   # Correcting well
   well_data, _, _ = correct_well(
     well_data[slicer], coords=[], 
     threshold=params['preprocessing_params']['drift_correction']['threshold'], 
     mode=params['preprocessing_params']['drift_correction']['filter_method'])
-  
-  max_well = well_data
-  if len(max_well.shape) > 2:
-    max_well = np.max(well_data, axis=0)
   
   # Magnification if needed
   magnification = params["preprocessing_params"]["magnification"]
@@ -41,8 +42,11 @@ def process_biosensor_data(well_data: np.ndarray, params: dict):
   
   # Scaling
   size, _ = CardioMicFitter._get_scale(getattr(CardioMicScaling, params["preprocessing_params"]["scaling"]))
-  max_well_scaled = cv2.resize(max_well, (size, size), interpolation=cv2.INTER_NEAREST)
+  processed_well = well_data
+  if len(processed_well.shape) > 2:
+    processed_well = np.max(processed_well, axis=0)
+  processed_well = cv2.resize(processed_well, (size, size), interpolation=cv2.INTER_NEAREST)
   ptss = ptss * size / 80 / magnification
 
-  return (max_well_scaled, ptss, max_well)
+  return (processed_well, ptss, raw_well)
 
