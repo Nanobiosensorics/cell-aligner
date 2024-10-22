@@ -11,18 +11,19 @@ def calculate_microscope_cell_centroids(segmentation: np.ndarray):
   mx_id = np.max(segmentation)
 
   # For every cell instance we have a centroid.
-  result = np.zeros((mx_id, 2))
+  result = []
 
   # Calculating cell centroids for each cell id.
   for id in range(1, mx_id + 1):
     # Getting x and y indices of the current cell.
     indices = np.where(segmentation == id)
 
-    # Getting coords by averaging cell indices.
-    y_mean = np.mean(indices[0])
-    x_mean = np.mean(indices[1])
+    if len(indices[0]) > 0 and len(indices[1]) > 0:
+      # Getting coords by averaging cell indices.
+      y_mean = np.mean(indices[0])
+      x_mean = np.mean(indices[1])
 
-    result[id - 1] = np.array([x_mean, y_mean])
+      result.append(np.array([x_mean, y_mean]))
 
-  return result
+  return np.array(result)
 
