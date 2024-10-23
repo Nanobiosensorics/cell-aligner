@@ -1,19 +1,21 @@
 import numpy as np
 import cv2
-from utils import calculate_microscope_cell_centroids
-from nanobio_core.epic_cardio.data_correction import correct_well
-from nanopyx.methods import SRRF
-from nanobio_core.epic_cardio.math_ops import calculate_cell_maximas
-from nanobio_core.image_fitting.cardio_mic import CardioMicFitter, CardioMicScaling
 
 
 def process_microscope_data(mic_data: np.ndarray, cellpose_model):
+  from utils import calculate_microscope_cell_centroids
+
   mask, _, _ = cellpose_model.eval(mic_data, channels=[0, 0])
   centroids = calculate_microscope_cell_centroids(mask)
   return (mic_data, centroids)
 
 
 def process_biosensor_data(well_data: np.ndarray, params: dict):
+  from nanobio_core.epic_cardio.data_correction import correct_well
+  from nanopyx.methods import SRRF
+  from nanobio_core.epic_cardio.math_ops import calculate_cell_maximas
+  from nanobio_core.image_fitting.cardio_mic import CardioMicFitter, CardioMicScaling
+
   slicer = slice(int(params['preprocessing_params']['range_lowerbound'] * len(well_data)), len(well_data))
 
   # Extracting raw well data.

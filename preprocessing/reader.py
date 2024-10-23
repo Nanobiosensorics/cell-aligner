@@ -2,7 +2,6 @@ import os
 import cv2
 import glob
 from abc import ABC, abstractmethod
-from nanobio_core.epic_cardio.processing import load_data
 
 
 class Reader(ABC):
@@ -33,6 +32,8 @@ class NanoReader(Reader):
     return result
   
   def read_biosensor_data(self):
+    from nanobio_core.epic_cardio.processing import load_data
+
     folder_path = os.path.join(self.base_path, "epic_data")
     raw_wells, _, _ = load_data(folder_path, flip=self.flip_epic)
     return raw_wells
