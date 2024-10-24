@@ -27,3 +27,17 @@ def calculate_microscope_cell_centroids(segmentation: np.ndarray):
 
   return np.array(result)
 
+
+"""
+:param segmentation: microscope image segmentation mask where each cell instance
+is marked with an unique number started from 1. (cell ids are 1, 2, 3...)
+:return: an identical mask where each centroid pixel is marked with 1.
+"""
+def get_microscope_cell_centroids_mask(segmentation: np.ndarray):
+  cell_centroids = calculate_microscope_cell_centroids(segmentation)
+  mask = np.zeros_like(segmentation)
+  for centroid in cell_centroids:
+    x, y = int(centroid[0]), int(centroid[1])
+    mask[y][x] = 1
+  return mask
+
