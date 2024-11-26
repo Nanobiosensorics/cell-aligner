@@ -13,7 +13,6 @@ This method uses the combination of standard python operations and numpy operati
 """
 def find_translation_stochastic(source_points: np.ndarray, target_points: np.ndarray, source_indices_ratio: float, optimizer_radius: int = 10):
   # Select random points from source data.
-  np.random.seed(42)
   selected_source_points = source_points[np.random.choice(len(source_points), int(source_indices_ratio * len(source_points)), replace=False)]
 
   # Calculate all translation candidate vectors from selected source points.
@@ -47,7 +46,7 @@ def find_translation_stochastic(source_points: np.ndarray, target_points: np.nda
         best_error = error
         best_transformed = translation + t
     
-    return best_transformed
+    return best_transformed, best_error
 
   # Tries each translation candidate and select the best.
   for candidate in translation_candidates:

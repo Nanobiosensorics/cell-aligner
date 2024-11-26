@@ -5,10 +5,9 @@ import numpy as np
 :param source_points: numpy array containing points which will be translated. (-1, 2) shaped.
 :param target_points: numpy array containing the points where the source points will be translated to. (-1, 2) shaped.
 :param epsilon: pairwise consistency threshold.
-:param source_indices_ratio: the percentage of random source samples.
-:param target_indices_ratio: the percentage of random target samples.
+:param correspondence_ratio: the percentage of random correspondence vector samples.
 """
-def find_translation_pmc(source_points: np.ndarray, target_points: np.ndarray, epsilon: float, source_indices_ratio: float = 1, target_indices_ratio: float = 1):
+def find_translation_pmc(source_points: np.ndarray, target_points: np.ndarray, epsilon: float, correspondence_ratio: float = 1):
   def __find_clique(candidates: np.ndarray, removed: np.ndarray, coloring: np.ndarray):
     nonlocal best_clique
     nonlocal current_clique
@@ -42,13 +41,8 @@ def find_translation_pmc(source_points: np.ndarray, target_points: np.ndarray, e
       
       i -= 1
 
-  # Randomly select source and target points based on ratios.
-  np.random.seed(42)
-  selected_source_points = source_points[np.random.choice(len(source_points), int(source_indices_ratio * len(source_points)), replace=False)]
-  selected_target_points = target_points[np.random.choice(len(target_points), int(target_indices_ratio * len(target_points)), replace=False)]
-
   # Build the graph out of selected indices.
-  correspondence_vectors, adjacency_list = __build_graph(selected_source_points, selected_target_points, epsilon)
+  correspondence_vectors, adjacency_list = __build_graph(source_points, target_points, epsilon, correspondence_ratio)
 
   # Sort the candidates in decreasing degree to minimize branching.
   candidates = np.argsort([len(x) for x in adjacency_list])[::-1].astype(np.uint16)
@@ -57,12 +51,15 @@ def find_translation_pmc(source_points: np.ndarray, target_points: np.ndarray, e
   current_clique, best_clique = [], []
   __find_clique(candidates, np.array([], dtype=np.uint16), __get_coloring_greedy(candidates, adjacency_list))
 
-  return np.average(correspondence_vectors[np.array(best_clique, dtype=np.uint16)], axis=0)
+  return np.average(correspondence_vectors[np.array(best_clique, dtype=np.uint16)], axis=0), len(best_clique)
 
 
 # Builds a graph out of correspodence vectors between source and target points with epsilon maximal threshold.
-def __build_graph(source_points: np.ndarray, target_points: np.ndarray, epsilon: float):
+def __build_graph(source_points: np.ndarray, target_points: np.ndarray, epsilon: float, correspondence_ratio: float):
+  # Random sampling.
   correspondence_vectors = (target_points - source_points[:, np.newaxis]).reshape(-1, 2)
+  correspondence_vectors = correspondence_vectors[np.random.choice(len(correspondence_vectors), int(correspondence_ratio * len(correspondence_vectors)), replace=False)]
+  
   [a_nodes, b_nodes] = np.where(np.linalg.norm(correspondence_vectors[:, np.newaxis] - correspondence_vectors, axis=-1) <= epsilon)
 
   adjacency_list = [[] for _ in range(len(correspondence_vectors))]
