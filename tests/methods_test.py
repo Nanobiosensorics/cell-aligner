@@ -15,7 +15,7 @@ class MethodsTest(unittest.TestCase):
     result = find_translation_stochastic(cardio_coords, mic_coords, 1)
 
     # Assert
-    self.assertTrue(np.allclose(-result, translation, 0.2))
+    self.assertTrue(np.allclose(-result[0], translation, 0.2))
 
   def test_find_translation_pmc(self):
     # Arrange
@@ -27,4 +27,4 @@ class MethodsTest(unittest.TestCase):
     result = find_translation_pmc(cardio_coords, mic_coords, 1)
 
     # Assert
-    self.assertTrue(np.allclose(-result, translation, 0.2))
+    self.assertTrue(np.allclose(-result[0], translation, 0.2))
